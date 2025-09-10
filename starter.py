@@ -1,8 +1,8 @@
 import asyncio
-from llama_index.core.agent.workflow import FunctionAgent
+from llama_index.core.agent.workflow import FunctionAgent, BaseWorkflowAgent
 from llama_index.llms.ollama import Ollama
 from enum import Enum
-
+from pprint import pprint
 
 # Enum for model names
 class Model(Enum):
@@ -11,12 +11,15 @@ class Model(Enum):
     gemma3 = "gemma3:latest"    # No tool support yet
 
 
+# TOOLS
+# --------------------------------
 # Define a simple calculator tool
 def multiply(a: float, b: float) -> float:
     """Useful for multiplying two numbers."""
     return a * b
 
-
+# AGENT SETUP
+# --------------------------------
 # Create an agent workflow with our calculator tool
 agent = FunctionAgent(
     tools=[multiply],
@@ -29,12 +32,23 @@ agent = FunctionAgent(
     system_prompt="You are a helpful assistant that can multiply two numbers.",
 )
 
-
+# HELPERS
+# --------------------------------
+async def stream_response(agent: FunctionAgent, query: str):
+    """Stream the agent's response."""
+    workflow_handler = agent.run(query)
+    async for chunk in workflow_handler.stream_events():
+        # Filter for LLM text generation events
+        if hasattr(chunk, 'delta') and chunk.delta:
+            print(chunk.delta, end="", flush=True)
+        elif hasattr(chunk, 'text') and chunk.text:
+            print(chunk.text, end="", flush=True)
+    print()  # For a newline after streaming
+    
 async def main():
     print("Starting agent...")
     # Run the agent
-    response = await agent.run("What is 1234 * 4567?")
-    print(str(response))
+    await stream_response(agent, "What is 1234 * 4567?")
 
 
 # Run the agent
