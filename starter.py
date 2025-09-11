@@ -3,14 +3,14 @@ from llama_index.core.agent.workflow import FunctionAgent, BaseWorkflowAgent
 from llama_index.llms.ollama import Ollama
 from enum import Enum
 from pprint import pprint
-# import llama_index.core.workflow.context.Context as context
-import workflows.context as context
+from llama_index.core.workflow import Context
 from typing import List, Sequence, Optional
 
 # Enum for model names
 class Model(Enum):
     qwen = "qwen3:4b"
     llama3 = "llama3.1:latest"
+    llama3_2 = "llama3.2:1b"
     gemma3 = "gemma3:latest"    # No tool support yet
 
 
@@ -32,17 +32,18 @@ def converse(query: str) -> str:
 agent = FunctionAgent(
     tools=[multiply, converse],
     llm=Ollama(
-        model=Model.llama3.value,
+        model=Model.llama3_2.value,
         request_timeout=360.0,
         # Manually set the context window to limit memory usage
         context_window=8000,
     ),
     system_prompt="You are a helpful assistant that can multiply two numbers.",
 )
+ctx = Context(agent)
 
 # HELPERS
 # --------------------------------
-async def stream_response(agent: FunctionAgent, query: str, ctx: Optional[context.Context] = None):
+async def stream_response(agent: FunctionAgent, query: str, ctx: Optional[Context] = None):
     """Stream the agent's response."""
     # print(f"User: {query}")
     workflow_handler = agent.run(query, ctx=ctx)
@@ -60,13 +61,13 @@ async def start_agent():
     await stream_response(agent, "Hello, what can you do?")
 
 async def main():
-    await start_agent()
+    # await start_agent()
 
-    while user_input := input("User: "):
-        await stream_response(agent, user_input)
-
-    # # Run the agent
-    # await stream_response(agent, "What is 1234 * 4567?")
+    # while user_input := input("User: "):
+    #     await stream_response(agent, user_input, ctx=ctx)
+    await stream_response(agent, input("User: "), ctx=ctx)
+    await stream_response(agent, input("User: "), ctx=ctx)
+    await stream_response(agent, input("User: "), ctx=ctx)
 
 
 # Run the agent
